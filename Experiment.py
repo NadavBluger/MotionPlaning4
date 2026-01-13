@@ -116,7 +116,17 @@ class Experiment:
         #      #     #######      ######   #######      ########                        #
         #                                                                               #
         #################################################################################
-        cube_approach = None #TODO 2: find a conf for the arm to get the correct cube
+
+
+
+        roll, pith, yaw = [0, -np.pi/2, 0]
+        cube_workspace = [1.93,1.87,.05]
+        transformation_matrix_base_to_tool = right_arm_transform.get_base_to_tool_transform(
+        position = cube_workspace, rpy = [roll, pith, yaw])
+        cube_approach = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
+
+
+        #cube_approach = [1.93,1.87,.05] #TODO 2: find a conf for the arm to get the correct cube
 
         # plan the path
         self.plan_single_arm(planner, right_arm_start, cube_approach, description, active_arm, "move",
