@@ -67,6 +67,35 @@ class RRTTree(object):
         self.vertices[eid].set_cost(cost=self.vertices[sid].cost + edge_cost)
         self.vertices[sid].children.add(self.vertices[eid])
 
+    def get_idx_for_config(self, config):
+        '''
+        Search for the vertex with the given config and return the index if exists
+        @param config Configuration to check if exists.
+        '''
+        valid_idxs = [v_idx for v_idx, v in self.vertices.items() if (v.config == config).all()]
+        if len(valid_idxs) > 0:
+            return valid_idxs[0]
+        return None
+
+    def is_goal_exists(self, config):
+        '''
+        Check if goal exists.
+        @param config Configuration to check if exists.
+        '''
+        goal_idx = self.get_idx_for_config(config=config)
+        if goal_idx is not None:
+            return True
+        return False
+
+    def get_vertex_for_config(self, config):
+        '''
+        Search for the vertex with the given config and return it if exists
+        @param config Configuration to check if exists.
+        '''
+        v_idx = self.get_idx_for_config(config=config)
+        if v_idx is not None:
+            return self.vertices[v_idx]
+        return None
 
 
 class RRTVertex(object):
