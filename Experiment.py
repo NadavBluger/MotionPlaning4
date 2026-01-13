@@ -185,8 +185,15 @@ class Experiment:
         #      #     #######      ######   #######      #####                           #
         #                                                                               #
         #################################################################################
-        self.right_arm_meeting_cond = None # TODO 1
-        self.left_arm_meeting_conf = None # TODO 1
+        wspace_meeting_point = [1,1.2,0.2] # [x,y,z]
+        roll, pith, yaw = [np.pi, 0, 0]
+        transformation_matrix_base_to_tool = transform_right_arm.get_base_to_tool_transform(position=wspace_meeting_point,rpy=[roll,pith,yaw])
+        right_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
+        roll, pith, yaw = [np.pi/2, 0, 0]
+        transformation_matrix_base_to_tool = transform_left_arm.get_base_to_tool_transform( position=wspace_meeting_point, rpy=[roll, pith, yaw])
+        left_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
+        self.right_arm_meeting_cond = right_cspace_meeting_point # TODO 1
+        self.left_arm_meeting_conf = left_cspace_meeting_point # TODO 1
 
         log(msg="start planning the experiment.")
         left_arm_start = self.left_arm_home
