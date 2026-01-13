@@ -27,8 +27,8 @@ class RRT_STAR(object):
         cost = math.inf
         start_time = time.time()
         while time.time() - start_time < 120:
-            if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path()) < cost:
-                cost = self.compute_cost(self.get_path())
+            if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path(goal_conf)) < cost:
+                cost = self.compute_cost(self.get_path(goal_conf))
                 costs.append((time.time() - start_time, cost))
             goal_prob = 0 if self.tree.is_goal_exists(goal_conf) else self.goal_prob
             rand_config = self.bb.sample_random_config(goal_prob, goal_conf)
@@ -74,16 +74,16 @@ class RRT_STAR(object):
             #     cost = self.compute_cost(self.get_path())
             #     costs.append((itrs, cost))
             #     print(costs[-1])
-            if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path()) < cost:
-                cost = self.compute_cost(self.get_path())
+            if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path(goal_conf)) < cost:
+                cost = self.compute_cost(self.get_path(goal_conf))
                 costs.append((time.time() - start_time, cost))
         print(len(self.tree.vertices))
-        return self.get_path(), costs
+        return self.get_path(goal_conf), costs
 
-    def get_path(self):
-        if not self.tree.is_goal_exists(self.goal):
+    def get_path(self, goal):
+        if not self.tree.is_goal_exists(goal):
             return []
-        current = self.tree.get_vertex_for_config(self.goal)
+        current = self.tree.get_vertex_for_config(goal)
         path = [current.config]
         while self.tree.get_idx_for_config(current.config) in self.tree.edges:
             current = self.tree.vertices[self.tree.edges[self.tree.get_idx_for_config(current.config)]]
@@ -103,16 +103,14 @@ class RRT_STAR(object):
         else:
             new_conf = x_near + ((x_random-x_near)/self.bb.compute_distance(x_near, x_random)) * self.max_step_size
         return np.array(new_conf)
+
     def get_k(self):
-        if self.k:
-            return  min(self.k, len(self.tree.vertices)-1)
-        else:
-            i = len(self.tree.vertices)
-            d = len(self.goal)
-            # k = e^(1+1/d)*log i
-            k = int(math.exp(1 + 1 / d) * math.log(i))
-            k = k if k > 1 else 1
-            return min(k, len(self.tree.vertices) - 1)
+        i = len(self.tree.vertices)
+        d = len(self.tree.vertices[0])
+        # k = e^(1+1/d)*log i
+        k = int(math.exp(1 + 1 / d) * math.log(i))
+        k = k if k > 1 else 1
+        return min(k, len(self.tree.vertices) - 1)
 
 
 class RRTMotionPlanner(object):
