@@ -122,7 +122,6 @@ class Experiment:
         self.plan_single_arm(planner, right_arm_start, cube_approach, description, active_arm, "move",
                                  left_arm_start, cubes, Gripper.OPEN, Gripper.STAY)
         ###############################################################################
-
         self.push_step_info_into_single_cube_passing_data("picking up a cube: go down",
                                                           LocationType.RIGHT,
                                                           "movel",
@@ -185,6 +184,7 @@ class Experiment:
         #      #     #######      ######   #######      #####                           #
         #                                                                               #
         #################################################################################
+        #Todo: change from hardcoded to this ik((fk(home2)-fk(home1))/2)
         wspace_meeting_point = [1,1.2,0.2] # [x,y,z]
         roll, pith, yaw = [np.pi, 0, 0]
         transformation_matrix_base_to_tool = transform_right_arm.get_base_to_tool_transform(position=wspace_meeting_point,rpy=[roll,pith,yaw])
@@ -192,8 +192,8 @@ class Experiment:
         roll, pith, yaw = [np.pi/2, 0, 0]
         transformation_matrix_base_to_tool = transform_left_arm.get_base_to_tool_transform( position=wspace_meeting_point, rpy=[roll, pith, yaw])
         left_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
-        self.right_arm_meeting_cond = right_cspace_meeting_point # TODO 1
-        self.left_arm_meeting_conf = left_cspace_meeting_point # TODO 1
+        self.right_arm_meeting_safety = right_cspace_meeting_point # TODO 1
+        self.left_arm_meeting_safety = left_cspace_meeting_point # TODO 1
 
         log(msg="start planning the experiment.")
         left_arm_start = self.left_arm_home
