@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import inverse_kinematics
 from kinematics import Transform, UR5e_PARAMS, UR5e_without_camera_PARAMS
@@ -9,7 +11,7 @@ class BuildingBlocks3D(object):
     """
 
     def __init__(self, transform:Transform, ur_params:UR5e_PARAMS, env, resolution=0.1):
-        self.transform = transform
+        #self.transform = transform
         self.ur_params = ur_params
         self.env = env
         self.resolution = resolution
@@ -37,8 +39,10 @@ class BuildingBlocks3D(object):
         @param goal_conf - the goal configuration
         :param goal_prob - the probability that goal should be sampled
         """
-        # TODO: HW2 5.2.1
-        pass
+        if random.random() < goal_prob:
+            return goal_conf
+        return [random.uniform(limit[0], limit[1]) for limit in self.ur_params.mechamical_limits.values()]
+
 
 
     def config_validity_checker(self, conf) -> bool:
@@ -46,8 +50,47 @@ class BuildingBlocks3D(object):
         return False if in collision
         @param conf - some configuration
         """
+        spheres = self.transform.conf2sphere_coords(conf)
+
+        # Convert to numpy arrays and check x > 0.4 constraint
+        spheres_arrays = {}
+        for name, link_spheres in spheres.items():
+            S = np.array(link_spheres)
+            if np.any(S[:, 0] > 0.4):
+                return False
+            spheres_arrays[name] = S
+
+        # link link collision
+        for plc in self.possible_link_collisions:
+            name1, name2 = plc
+            S1 = spheres_arrays[name1]
+            S2 = spheres_arrays[name2]
+            r1 = self.ur_params.sphere_radius[name1]
+            r2 = self.ur_params.sphere_radius[name2]
+
+            # Vectorized distance check
+            dists_sq = np.sum((S1[:, None, :] - S2[None, :, :]) ** 2, axis=-1)
+            if np.any(dists_sq < (r1 + r2) ** 2):
+                return False
+
+        # link obstacle collision
+        if len(self.obstacles_np) > 0:
+            obs_r = self.env.radius
+            for name, S in spheres_arrays.items():
+                r = self.ur_params.sphere_radius[name]
+                dists_sq = np.sum((S[:, None, :] - self.obstacles_np[None, :, :]) ** 2, axis=-1)
+                if np.any(dists_sq < (obs_r + r) ** 2):
+                    return False
+
+        # link floor collision
+        for name, S in spheres_arrays.items():
+            if name == "shoulder_link":
+                continue
+            if np.any(S[:, 2] < self.ur_params.sphere_radius[name]):
+                return False
+
+        return True
         # TODO: HW2 5.2.2- Pay attention that function is a little different than in HW2
-        pass
 
 
     def edge_validity_checker(self, prev_conf, current_conf) -> bool:
@@ -55,8 +98,16 @@ class BuildingBlocks3D(object):
         @param prev_conf - some configuration
         @param current_conf - current configuration
         """
-        # TODO: HW2 5.2.4
-        pass
+        length = np.linalg.norm(current_conf - prev_conf)
+        amount = max(int(length / self.resolution), 2)
+        current = prev_conf.copy()
+        increment = (current_conf - prev_conf) / amount
+        for i in range(amount + 1):
+            if self.config_validity_checker(current):
+                current += increment
+            else:
+                return False
+        return True
 
 
 
@@ -67,6 +118,7 @@ class BuildingBlocks3D(object):
         @param conf2 - configuration 2
         """
         return np.dot(self.cost_weights, np.power(conf1 - conf2, 2)) ** 0.5
+
     def validate_IK_solutions(self,configurations : np.array, original_transformation):
         
         legal_conf = []

@@ -7,7 +7,7 @@ import environment
 from RRTTree import RRTTree
 
 class RRT_STAR(object):
-    def __init__(self, max_step_size, max_itr, bb):
+    def __init__(self, max_step_size, max_itr, bb, p_bias):
         self.max_step_size = max_step_size
         self.max_itr = max_itr
         self.bb = bb
@@ -19,6 +19,8 @@ class RRT_STAR(object):
         # self.TWO_PI = 2 * math.pi
         self.last_cost = -1
         self.last_ratio = 1
+        self.goal_prob = p_bias
+
 
     def find_path(self, start_conf, goal_conf):
         self.tree.AddVertex(start_conf)

@@ -229,11 +229,11 @@ class Experiment:
 
         bb = BuildingBlocks3D(env=env,
                              resolution=self.resolution,
-                             p_bias=self.goal_bias, )
+                             )
 
         rrt_star_planner = RRT_STAR(max_step_size=self.max_step_size,
                                     max_itr=self.max_itr,
-                                    bb=bb)
+                                    bb=bb, p_bias=self.goal_bias)
         visualizer = Visualize_UR(ur_params_right, env=env, transform_right_arm=transform_right_arm,
                                   transform_left_arm=transform_left_arm)
         # cubes
@@ -267,7 +267,7 @@ class Experiment:
         left_arm_start = self.left_arm_home
         right_arm_start = self.right_arm_home
         for i in range(len(self.cubes)):
-            left_arm_start, right_arm_start = self.plan_single_cube_passing(i, self.cubes, left_arm_start, right_arm_start,env, bb, rrt_star_planner, left_arm_start, right_arm_start)
+            left_arm_start, right_arm_start = self.plan_single_cube_passing(i, self.cubes, left_arm_start, right_arm_start,env, bb, rrt_star_planner, transform_left_arm, transform_right_arm)
 
 
         t2 = time.time()
