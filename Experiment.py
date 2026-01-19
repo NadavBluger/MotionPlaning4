@@ -84,7 +84,7 @@ class Experiment:
 
     def plan_single_cube_passing(self, cube_i, cubes,
                                  left_arm_start, right_arm_start,
-                                 env, bb, planner, left_arm_transform, right_arm_transform,):
+                                 env, bb_l, bb_r, planner_r, planner_l, left_arm_transform, right_arm_transform,):
         # add a new step entry
         single_cube_passing_info = {
             "description": [],  # text to be displayed on the animation
@@ -129,7 +129,7 @@ class Experiment:
         #cube_approach = [1.93,1.87,.05] #TODO 2: find a conf for the arm to get the correct cube
 
         # plan the path
-        self.plan_single_arm(planner, right_arm_start, cube_approach, description, active_arm, "move",
+        self.plan_single_arm(planner_r, right_arm_start, cube_approach, description, active_arm, "move",
                                  left_arm_start, cubes, Gripper.OPEN, Gripper.STAY)
         ###############################################################################
         self.push_step_info_into_single_cube_passing_data("picking up a cube: go down",
@@ -169,11 +169,11 @@ class Experiment:
             position=cube_workspace + [0, 0, .5], rpy=[roll, pith, yaw])
         above_cube_config = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,
                                                                           transformation_matrix_base_to_tool)
-        self.plan_single_arm(planner, above_cube_config, self.right_arm_meeting_cond,"right_arm => [cube -> meeting], left_arm static",active_arm, "move",
+        self.plan_single_arm(planner_r, above_cube_config, self.right_arm_meeting_cond,"right_arm => [cube -> meeting], left_arm static",active_arm, "move",
                                  left_arm_start, cubes, Gripper.STAY, Gripper.STAY)
 
 
-        self.plan_single_arm(planner, left_arm_start, self.left_arm_meeting_conf,"right_arm static, left_arm => [start -> meeting]", LocationType.LEFT, "move",
+        self.plan_single_arm(planner_l, left_arm_start, self.left_arm_meeting_conf,"right_arm static, left_arm => [start -> meeting]", LocationType.LEFT, "move",
                              self.right_arm_meeting_cond, cubes, Gripper.STAY, Gripper.OPEN)
         self.push_step_info_into_single_cube_passing_data("Left closes gripper",
                                                           LocationType.LEFT,
@@ -197,7 +197,7 @@ class Experiment:
         x2, y2 = area[1]
 
         middleZoneB = [(x1 + x2) / 2, (y1 + y2) / 2]
-        self.plan_single_arm(planner, left_arm_start, middleZoneB,
+        self.plan_single_arm(planner_l, left_arm_start, middleZoneB,
                              "right_arm static, left_arm to zone B", LocationType.LEFT, "move",
                              self.right_arm_meeting_cond, cubes, Gripper.STAY, Gripper.STAY)
         self.push_step_info_into_single_cube_passing_data("dropping cube",
@@ -227,13 +227,15 @@ class Experiment:
         env.arm_transforms[LocationType.RIGHT] = transform_right_arm
         env.arm_transforms[LocationType.LEFT] = transform_left_arm
 
-        bb = BuildingBlocks3D(env=env,
-                             resolution=self.resolution,
-                             )
+        bb_left = BuildingBlocks3D(env=env, resolution=self.resolution, transform= transform_left_arm, ur_params=ur_params_left)
+        bb_right = BuildingBlocks3D(env=env, resolution=self.resolution, transform= transform_right_arm, ur_params=ur_params_right)
 
-        rrt_star_planner = RRT_STAR(max_step_size=self.max_step_size,
+        rrt_star_planner_left = RRT_STAR(max_step_size=self.max_step_size,
                                     max_itr=self.max_itr,
-                                    bb=bb, p_bias=self.goal_bias)
+                                    bb=bb_left, p_bias=self.goal_bias)
+        rrt_star_planner_right = RRT_STAR(max_step_size=self.max_step_size,
+                                         max_itr=self.max_itr,
+                                         bb=bb_right, p_bias=self.goal_bias)
         visualizer = Visualize_UR(ur_params_right, env=env, transform_right_arm=transform_right_arm,
                                   transform_left_arm=transform_left_arm)
         # cubes
@@ -267,7 +269,7 @@ class Experiment:
         left_arm_start = self.left_arm_home
         right_arm_start = self.right_arm_home
         for i in range(len(self.cubes)):
-            left_arm_start, right_arm_start = self.plan_single_cube_passing(i, self.cubes, left_arm_start, right_arm_start,env, bb, rrt_star_planner, transform_left_arm, transform_right_arm)
+            left_arm_start, right_arm_start = self.plan_single_cube_passing(i, self.cubes, left_arm_start, right_arm_start,env, bb_left, bb_right, rrt_star_planner_left,rrt_star_planner_right, transform_left_arm, transform_right_arm)
 
 
         t2 = time.time()
