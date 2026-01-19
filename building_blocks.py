@@ -11,7 +11,7 @@ class BuildingBlocks3D(object):
     """
 
     def __init__(self, transform:Transform, ur_params:UR5e_PARAMS, env, resolution=0.1):
-        #self.transform = transform
+        self.transform = transform
         self.ur_params = ur_params
         self.env = env
         self.resolution = resolution

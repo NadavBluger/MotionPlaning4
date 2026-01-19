@@ -34,7 +34,7 @@ class RRT_STAR(object):
                 costs.append((time.time() - start_time, cost))
             goal_prob = 0 if self.tree.is_goal_exists(goal_conf) else self.goal_prob
             rand_config = self.bb.sample_random_config(goal_prob, goal_conf)
-            sid, nearest_config = self.tree.GetNearestVertex(rand_config)[0]
+            sid, nearest_config = self.tree.GetNearestVertex(rand_config)
             if self.bb.config_validity_checker(rand_config) and self.bb.edge_validity_checker(nearest_config,
                                                                                               rand_config):
                 new_config = self.extend(nearest_config, rand_config)
@@ -47,8 +47,8 @@ class RRT_STAR(object):
                 # Parent rewire
                 potential_parents = []
                 for nearest_neighbor in nearest_neighbors:
-                    if self.bb.edge_validity_checker(new_config, self.tree.vertices[nearest_neighbor].config):
-                        new_cost = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].config) + \
+                    if self.bb.edge_validity_checker(new_config, self.tree.vertices[nearest_neighbor].state):
+                        new_cost = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].state) + \
                                    self.tree.vertices[nearest_neighbor].cost
                         potential_parents.append((nearest_neighbor, new_cost))
                 if potential_parents:
@@ -61,8 +61,8 @@ class RRT_STAR(object):
                 # Child rewire
                 potential_children = []
                 for nearest_neighbor in nearest_neighbors:
-                    if self.bb.edge_validity_checker(new_config, self.tree.vertices[nearest_neighbor].config):
-                        new_cost = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].config) + \
+                    if self.bb.edge_validity_checker(new_config, self.tree.vertices[nearest_neighbor].state):
+                        new_cost = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].state) + \
                                    self.tree.vertices[eid].cost
                         potential_children.append((nearest_neighbor, new_cost))
                 if potential_children:
@@ -75,7 +75,7 @@ class RRT_STAR(object):
             # if self.tree.is_goal_exists(self.goal) and self.compute_cost(self.get_path()) < cost:
             #     cost = self.compute_cost(self.get_path())
             #     costs.append((itrs, cost))
-            #     print(costs[-1])
+            #     (costs[-1])
             if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path(goal_conf)) < cost:
                 cost = self.compute_cost(self.get_path(goal_conf))
                 costs.append((time.time() - start_time, cost))
@@ -86,10 +86,10 @@ class RRT_STAR(object):
         if not self.tree.is_goal_exists(goal):
             return []
         current = self.tree.get_vertex_for_config(goal)
-        path = [current.config]
-        while self.tree.get_idx_for_config(current.config) in self.tree.edges:
-            current = self.tree.vertices[self.tree.edges[self.tree.get_idx_for_config(current.config)]]
-            path.append(current.config)
+        path = [current.state]
+        while self.tree.get_idx_for_config(current.state) in self.tree.edges:
+            current = self.tree.vertices[self.tree.edges[self.tree.get_idx_for_config(current.state)]]
+            path.append(current.state)
         return np.array(path)[::-1]
 
 
@@ -138,10 +138,10 @@ class RRTMotionPlanner(object):
             self.extend(self.tree.GetNearestVertex(rand_config)[1], rand_config)
 
         current = self.tree.get_vertex_for_config(goal_conf)
-        plan = [current.config]
-        while np.any(current.config != start_conf):
-            current = self.tree.vertices[self.tree.edges[self.tree.get_idx_for_config(current.config)]]
-            plan.append(current.config)
+        plan = [current.state]
+        while np.any(current.state != start_conf):
+            current = self.tree.vertices[self.tree.edges[self.tree.get_idx_for_config(current.state)]]
+            plan.append(current.state)
 
         return np.array(plan)[::-1]
 

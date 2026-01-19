@@ -43,8 +43,8 @@ class Experiment:
         self.cubes = cubes
         self.right_arm_base_delta = 0  # deviation from the first link 0 angle
         self.left_arm_base_delta = 0  # deviation from the first link 0 angle
-        self.right_arm_meeting_safety = None
-        self.left_arm_meeting_safety = None
+        self.right_arm_meeting_conf = None
+        self.left_arm_meeting_conf = None
 
         # tunable params
         self.max_itr = 1000
@@ -70,8 +70,7 @@ class Experiment:
     def plan_single_arm(self, planner, start_conf, goal_conf, description, active_id, command, static_arm_conf, cubes_real,
                             gripper_pre, gripper_post):
         path, cost = planner.find_path(start_conf=start_conf,
-                                       goal_conf=goal_conf,
-                                       manipulator=active_id)
+                                       goal_conf=goal_conf)
         # create the arm plan
         self.push_step_info_into_single_cube_passing_data(description,
                                                           active_id,
@@ -123,7 +122,7 @@ class Experiment:
         cube_workspace = self.cubes[cube_i]
         transformation_matrix_base_to_tool = right_arm_transform.get_base_to_tool_transform(
         position = cube_workspace, rpy = [roll, pith, yaw])
-        cube_approach = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
+        cube_approach = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)[0]
 
 
         #cube_approach = [1.93,1.87,.05] #TODO 2: find a conf for the arm to get the correct cube
@@ -161,24 +160,21 @@ class Experiment:
                                                           Gripper.STAY)
 
 
-
-
-
         # Plan right arm to meeting point
         transformation_matrix_base_to_tool = right_arm_transform.get_base_to_tool_transform(
-            position=cube_workspace + [0, 0, .5], rpy=[roll, pith, yaw])
+            position=[x+y for x,y in zip(cube_workspace , [0, 0, .5])], rpy=[roll, pith, yaw])
         above_cube_config = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,
-                                                                          transformation_matrix_base_to_tool)
-        self.plan_single_arm(planner_r, above_cube_config, self.right_arm_meeting_cond,"right_arm => [cube -> meeting], left_arm static",active_arm, "move",
+                                                                          transformation_matrix_base_to_tool)[0]
+        self.plan_single_arm(planner_r, above_cube_config, self.right_arm_meeting_conf,"right_arm => [cube -> meeting], left_arm static",active_arm, "move",
                                  left_arm_start, cubes, Gripper.STAY, Gripper.STAY)
 
 
         self.plan_single_arm(planner_l, left_arm_start, self.left_arm_meeting_conf,"right_arm static, left_arm => [start -> meeting]", LocationType.LEFT, "move",
-                             self.right_arm_meeting_cond, cubes, Gripper.STAY, Gripper.OPEN)
+                             self.right_arm_meeting_conf, cubes, Gripper.STAY, Gripper.OPEN)
         self.push_step_info_into_single_cube_passing_data("Left closes gripper",
                                                           LocationType.LEFT,
                                                           "movel",
-                                                          list(self.right_arm_meeting_cond),
+                                                          list(self.right_arm_meeting_conf),
                                                           [0,0,0],
                                                           [],
                                                           Gripper.STAY,
@@ -199,17 +195,17 @@ class Experiment:
         middleZoneB = [(x1 + x2) / 2, (y1 + y2) / 2]
         self.plan_single_arm(planner_l, left_arm_start, middleZoneB,
                              "right_arm static, left_arm to zone B", LocationType.LEFT, "move",
-                             self.right_arm_meeting_cond, cubes, Gripper.STAY, Gripper.STAY)
+                             self.right_arm_meeting_conf, cubes, Gripper.STAY, Gripper.STAY)
         self.push_step_info_into_single_cube_passing_data("dropping cube",
                                                           LocationType.LEFT,
                                                           "movel",
-                                                          list(self.right_arm_meeting_cond),
+                                                          list(self.right_arm_meeting_conf),
                                                           [0, 0, 0],
                                                           [],
                                                           Gripper.STAY,
                                                           Gripper.OPEN)
 
-        return middleZoneB, list(self.right_arm_meeting_cond) #TODO 3: return left and right end position, so it can be the start position for the next interation.
+        return middleZoneB, list(self.right_arm_meeting_conf) #TODO 3: return left and right end position, so it can be the start position for the next interation.
 
 
     def plan_experiment(self):
@@ -258,12 +254,12 @@ class Experiment:
         wspace_meeting_point = [1,1.2,0.2] # [x,y,z]
         roll, pith, yaw = [np.pi, 0, 0]
         transformation_matrix_base_to_tool = transform_right_arm.get_base_to_tool_transform(position=wspace_meeting_point,rpy=[roll,pith,yaw])
-        right_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
+        right_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)[0]
         roll, pith, yaw = [np.pi/2, 0, 0]
         transformation_matrix_base_to_tool = transform_left_arm.get_base_to_tool_transform( position=wspace_meeting_point, rpy=[roll, pith, yaw])
-        left_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
-        self.right_arm_meeting_safety = right_cspace_meeting_point # TODO 1
-        self.left_arm_meeting_safety = left_cspace_meeting_point # TODO 1
+        left_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)[0]
+        self.right_arm_meeting_conf = right_cspace_meeting_point # TODO 1
+        self.left_arm_meeting_conf = left_cspace_meeting_point # TODO 1
 
         log(msg="start planning the experiment.")
         left_arm_start = self.left_arm_home

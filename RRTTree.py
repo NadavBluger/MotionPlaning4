@@ -19,7 +19,7 @@ class RRTTree(object):
         Returns the nearest state ID in the tree.
         @param config Sampled configuration.
         '''
-        dists = [self.bb.edge_cost(config, self.vertices[v].state) for v in self.vertices]
+        dists = [self.bb.compute_distance(config, self.vertices[v].state) for v in self.vertices]
         # for v in self.vertices:
         #     v_node = self.vertices[v]
         #     dists.append(self.bb.edge_cost(config, v_node.state))
@@ -72,7 +72,7 @@ class RRTTree(object):
         Search for the vertex with the given config and return the index if exists
         @param config Configuration to check if exists.
         '''
-        valid_idxs = [v_idx for v_idx, v in self.vertices.items() if (v.config == config).all()]
+        valid_idxs = [v_idx for v_idx, v in self.vertices.items() if (v.state == config).all()]
         if len(valid_idxs) > 0:
             return valid_idxs[0]
         return None
