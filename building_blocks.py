@@ -57,7 +57,7 @@ class BuildingBlocks3D(object):
         for name, link_spheres in spheres.items():
             S = np.array(link_spheres)
             if np.any(S[:, 1] > 2.2):
-                print(f"wall collision: {name} y={np.max(S[:, 1])}")
+                # print(f"wall collision: {name} y={np.max(S[:, 1])}")
                 return False
             spheres_arrays[name] = S
 
@@ -72,7 +72,7 @@ class BuildingBlocks3D(object):
             # Vectorized distance check
             dists_sq = np.sum((S1[:, None, :3] - S2[None, :, :3]) ** 2, axis=-1)
             if np.any(dists_sq < (r1 + r2) ** 2):
-                print(f"link link collision: {name1} - {name2}")
+                # print(f"link link collision: {name1} - {name2}")
                 return False
 
 
@@ -83,7 +83,7 @@ class BuildingBlocks3D(object):
                 r = self.ur_params.sphere_radius[name]
                 dists_sq = np.sum((S[:, None, :3] - self.env.obstacles[None, :, :]) ** 2, axis=-1)
                 if np.any(dists_sq < (obs_r + r) ** 2):
-                    print(f"link obstacle collision: {name}")
+                    # print(f"link obstacle collision: {name}")
                     return False
 
         # link floor collision
@@ -91,7 +91,7 @@ class BuildingBlocks3D(object):
             if name == "shoulder_link":
                 continue
             if np.any(S[:, 2] < self.ur_params.sphere_radius[name]):
-                print(f"floor collision: {name} z={np.min(S[:, 2])} r={self.ur_params.sphere_radius[name]}")
+                # print(f"floor collision: {name} z={np.min(S[:, 2])} r={self.ur_params.sphere_radius[name]}")
                 return False
 
         return True

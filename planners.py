@@ -28,7 +28,8 @@ class RRT_STAR(object):
         costs = []
         cost = math.inf
         start_time = time.time()
-        while time.time() - start_time < 120:
+        while not self.tree.is_goal_exists(goal_conf):
+            print(len(self.tree.vertices))
             if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path(goal_conf)) < cost:
                 cost = self.compute_cost(self.get_path(goal_conf))
                 costs.append((time.time() - start_time, cost))
@@ -45,32 +46,32 @@ class RRT_STAR(object):
                 nearest_neighbors, _ = self.tree.GetKNN(new_config, self.get_k())
 
                 # Parent rewire
+                # Optimization: Sort by potential cost and check validity only for better parents
                 potential_parents = []
                 for nearest_neighbor in nearest_neighbors:
-                    if self.bb.edge_validity_checker(new_config, self.tree.vertices[nearest_neighbor].state):
-                        new_cost = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].state) + \
-                                   self.tree.vertices[nearest_neighbor].cost
-                        potential_parents.append((nearest_neighbor, new_cost))
-                if potential_parents:
-                    potential_parents.sort(key=lambda x: x[1])
-                    new_parent = potential_parents[0]
-                    if new_parent[1] < self.tree.vertices[eid].cost:
-                        self.tree.vertices[eid].cost = new_parent[1]
-                        self.tree.edges[eid] = new_parent[0]
+                    dist = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].state)
+                    potential_cost = self.tree.vertices[nearest_neighbor].cost + dist
+                    potential_parents.append((nearest_neighbor, potential_cost))
+                
+                potential_parents.sort(key=lambda x: x[1])
+
+                for parent_idx, parent_cost in potential_parents:
+                    if parent_cost >= self.tree.vertices[eid].cost:
+                        break
+                    if self.bb.edge_validity_checker(new_config, self.tree.vertices[parent_idx].state):
+                        self.tree.vertices[eid].cost = parent_cost
+                        self.tree.edges[eid] = parent_idx
+                        break
 
                 # Child rewire
-                potential_children = []
+                # Optimization: Check cost improvement before collision check
                 for nearest_neighbor in nearest_neighbors:
-                    if self.bb.edge_validity_checker(new_config, self.tree.vertices[nearest_neighbor].state):
-                        new_cost = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].state) + \
-                                   self.tree.vertices[eid].cost
-                        potential_children.append((nearest_neighbor, new_cost))
-                if potential_children:
-                    potential_children.sort(key=lambda x: x[1])
-                    new_child = potential_children[0]
-                    if new_child[1] < self.tree.vertices[eid].cost:
-                        self.tree.vertices[new_child[0]].cost = new_child[1]
-                        self.tree.edges[new_child] = eid
+                    dist = self.bb.compute_distance(new_config, self.tree.vertices[nearest_neighbor].state)
+                    new_cost = self.tree.vertices[eid].cost + dist
+                    if new_cost < self.tree.vertices[nearest_neighbor].cost:
+                        if self.bb.edge_validity_checker(new_config, self.tree.vertices[nearest_neighbor].state):
+                            self.tree.vertices[nearest_neighbor].cost = new_cost
+                            self.tree.edges[nearest_neighbor] = eid
             itrs += 1
             # if self.tree.is_goal_exists(self.goal) and self.compute_cost(self.get_path()) < cost:
             #     cost = self.compute_cost(self.get_path())
