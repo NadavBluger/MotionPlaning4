@@ -269,7 +269,7 @@ class Experiment:
         left_arm_start = self.left_arm_home
         right_arm_start = self.right_arm_home
         for i in range(len(self.cubes)):
-            left_arm_start, right_arm_start = self.plan_single_cube_passing(i, self.cubes, left_arm_start, right_arm_start,env, bb_left, bb_right, rrt_star_planner_left,rrt_star_planner_right, transform_left_arm, transform_right_arm)
+            left_arm_start, right_arm_start = self.plan_single_cube_passing(i, self.cubes, left_arm_start, right_arm_start,env, bb_left, bb_right,rrt_star_planner_right, rrt_star_planner_left, transform_left_arm, transform_right_arm)
 
 
         t2 = time.time()
