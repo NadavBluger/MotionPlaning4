@@ -108,7 +108,7 @@ class RRT_STAR(object):
 
     def get_k(self):
         i = len(self.tree.vertices)
-        d = len(self.tree.vertices[0])
+        d = len(self.tree.vertices[0].state)
         # k = e^(1+1/d)*log i
         k = int(math.exp(1 + 1 / d) * math.log(i))
         k = k if k > 1 else 1

@@ -35,7 +35,7 @@ class RRTTree(object):
         @param k Number of nearest neighbors to retrieve.
         '''
         # dists = []
-        dists = [self.bb.edge_cost(config, self.vertices[vid].state) for vid in self.vertices]
+        dists = [self.bb.compute_distance(config, self.vertices[vid].state) for vid in self.vertices]
         # for id in self.vertices:
         #     dists.append(self.bb.edge_cost(config, self.vertices[id].state))
 
