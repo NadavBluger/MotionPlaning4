@@ -68,7 +68,8 @@ class Experiment:
         self.experiment_result[-1]["gripper_post"].append(gripper_post)
 
     def plan_single_arm(self, planner, start_conf, goal_conf, description, active_id, command, static_arm_conf, cubes_real,
-                            gripper_pre, gripper_post):
+                        gripper_pre, gripper_post):
+        update_environment(planner.bb.env,active_id, static_arm_conf, self.cubes)
         path, cost = planner.find_path(start_conf=start_conf,
                                        goal_conf=goal_conf)
         # create the arm plan
@@ -102,8 +103,8 @@ class Experiment:
         active_arm = LocationType.RIGHT
         # start planning
         log(msg=description)
-    
-      
+
+
         #################################################################################
         #                                                                               #
         #   #######  #######      ######   #######      #######                         #
@@ -121,7 +122,7 @@ class Experiment:
         roll, pith, yaw = [0, -np.pi/2, 0]
         cube_workspace = self.cubes[cube_i]
         transformation_matrix_base_to_tool = right_arm_transform.get_base_to_tool_transform(
-        position = cube_workspace, rpy = [roll, pith, yaw])
+            position = cube_workspace, rpy = [roll, pith, yaw])
         cube_approach = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)[0]
 
 
@@ -129,7 +130,7 @@ class Experiment:
 
         # plan the path
         self.plan_single_arm(planner_r, right_arm_start, cube_approach, description, active_arm, "move",
-                                 left_arm_start, cubes, Gripper.OPEN, Gripper.STAY)
+                             left_arm_start, cubes, Gripper.OPEN, Gripper.STAY)
         ###############################################################################
         self.push_step_info_into_single_cube_passing_data("picking up a cube: go down",
                                                           LocationType.RIGHT,
@@ -166,7 +167,7 @@ class Experiment:
         above_cube_config = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,
                                                                           transformation_matrix_base_to_tool)[0]
         self.plan_single_arm(planner_r, above_cube_config, self.right_arm_meeting_conf,"right_arm => [cube -> meeting], left_arm static",active_arm, "move",
-                                 left_arm_start, cubes, Gripper.STAY, Gripper.STAY)
+                             left_arm_start, cubes, Gripper.STAY, Gripper.STAY)
 
 
         self.plan_single_arm(planner_l, left_arm_start, self.left_arm_meeting_conf,"right_arm static, left_arm => [start -> meeting]", LocationType.LEFT, "move",
@@ -187,13 +188,16 @@ class Experiment:
                                                           [],
                                                           Gripper.STAY,
                                                           Gripper.OPEN)
-        area = self.cube_areas[LocationType.LEFT]
+        area = env.cube_areas[LocationType.LEFT]
 
         x1, y1 = area[0]
         x2, y2 = area[1]
 
-        middleZoneB = [(x1 + x2) / 2, (y1 + y2) / 2]
-        self.plan_single_arm(planner_l, left_arm_start, middleZoneB,
+        middleZoneB = [(x1 + x2) / 2, (y1 + y2) / 2, 0.4]
+        middleZoneB_trans = left_arm_transform.get_base_to_tool_transform(position=middleZoneB, rpy=[roll, pith, yaw])
+        middleZoneB_conf = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,
+                                                                         middleZoneB_trans)[0]
+        self.plan_single_arm(planner_l, left_arm_start, middleZoneB_conf,
                              "right_arm static, left_arm to zone B", LocationType.LEFT, "move",
                              self.right_arm_meeting_conf, cubes, Gripper.STAY, Gripper.STAY)
         self.push_step_info_into_single_cube_passing_data("dropping cube",
@@ -205,7 +209,7 @@ class Experiment:
                                                           Gripper.STAY,
                                                           Gripper.OPEN)
 
-        return middleZoneB, list(self.right_arm_meeting_conf) #TODO 3: return left and right end position, so it can be the start position for the next interation.
+        return np.array(middleZoneB_conf), np.array(self.right_arm_meeting_conf) #TODO 3: return left and right end position, so it can be the start position for the next interation.
 
 
     def plan_experiment(self):
@@ -227,11 +231,11 @@ class Experiment:
         bb_right = BuildingBlocks3D(env=env, resolution=self.resolution, transform= transform_right_arm, ur_params=ur_params_right)
 
         rrt_star_planner_left = RRT_STAR(max_step_size=self.max_step_size,
-                                    max_itr=self.max_itr,
-                                    bb=bb_left, p_bias=self.goal_bias)
-        rrt_star_planner_right = RRT_STAR(max_step_size=self.max_step_size,
                                          max_itr=self.max_itr,
-                                         bb=bb_right, p_bias=self.goal_bias)
+                                         bb=bb_left, p_bias=self.goal_bias)
+        rrt_star_planner_right = RRT_STAR(max_step_size=self.max_step_size,
+                                          max_itr=self.max_itr,
+                                          bb=bb_right, p_bias=self.goal_bias)
         visualizer = Visualize_UR(ur_params_right, env=env, transform_right_arm=transform_right_arm,
                                   transform_left_arm=transform_left_arm)
         # cubes

@@ -35,11 +35,11 @@ class RRT_STAR(object):
             goal_prob = 0 if self.tree.is_goal_exists(goal_conf) else self.goal_prob
             rand_config = self.bb.sample_random_config(goal_prob, goal_conf)
             sid, nearest_config = self.tree.GetNearestVertex(rand_config)
-            if self.bb.config_validity_checker(rand_config) and self.bb.edge_validity_checker(nearest_config,
+            if self.bb.config_validity_checker(rand_config) and self.bb.edge_validity_checker(nearest_config.state,
                                                                                               rand_config):
-                new_config = self.extend(nearest_config, rand_config)
+                new_config = self.extend(nearest_config.state, rand_config)
                 eid = self.tree.AddVertex(new_config)
-                new_cost = self.bb.compute_distance(nearest_config, new_config) + self.tree.vertices[sid].cost
+                new_cost = self.bb.compute_distance(nearest_config.state, new_config) + self.tree.vertices[sid].cost
                 self.tree.AddEdge(sid, eid, new_cost)
 
                 nearest_neighbors, _ = self.tree.GetKNN(new_config, self.get_k())
