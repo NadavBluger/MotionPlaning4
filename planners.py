@@ -28,6 +28,8 @@ class RRT_STAR(object):
         costs = []
         cost = math.inf
         start_time = time.time()
+        self.treen = RRTTree(self.bb)
+        self.bb.config_validity_checker(goal_conf)
         while not self.tree.is_goal_exists(goal_conf):
             print(len(self.tree.vertices))
             if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path(goal_conf)) < cost:

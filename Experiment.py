@@ -49,7 +49,7 @@ class Experiment:
         # tunable params
         self.max_itr = 1000
         self.max_step_size = 0.5
-        self.goal_bias = 0.05
+        self.goal_bias = 0.2
         self.resolution = 0.1
         # start confs
         self.right_arm_home = np.deg2rad([0, -90, 0, -90, 0, 0])
@@ -103,6 +103,8 @@ class Experiment:
         active_arm = LocationType.RIGHT
         # start planning
         log(msg=description)
+        
+
 
 
         #################################################################################
@@ -117,14 +119,17 @@ class Experiment:
         #                                                                               #
         #################################################################################
 
-
+        # Update environment so collision checks consider the static arm and cubes
+        update_environment(env, active_arm, left_arm_start, cubes)
 
         roll, pith, yaw = [0, -np.pi/2, 0]
-        cube_workspace = self.cubes[cube_i]
+        cube_workspace = self.cubes[cube_i].copy()
+        cube_workspace[-1]+=0.7
         transformation_matrix_base_to_tool = right_arm_transform.get_base_to_tool_transform(
             position = cube_workspace, rpy = [roll, pith, yaw])
-        cube_approach = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)[0]
-
+        cube_approaches = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)
+        valid_cube_approach = bb_r.validate_IK_solutions(cube_approaches, transformation_matrix_base_to_tool)
+        cube_approach = valid_cube_approach[0]
 
         #cube_approach = [1.93,1.87,.05] #TODO 2: find a conf for the arm to get the correct cube
 
@@ -254,13 +259,22 @@ class Experiment:
         #      #     #######      ######   #######      #####                           #
         #                                                                               #
         #################################################################################
-        #Todo: change from hardcoded to this ik((fk(home2)-fk(home1))/2)
-        wspace_meeting_point = [1,1.2,0.2] # [x,y,z]
+        right_base = env.arm_base_location[LocationType.RIGHT]
+        left_base = env.arm_base_location[LocationType.LEFT]
+
+        meeting_x = (right_base[0] + left_base[0]) / 2.0
+        meeting_y = (right_base[1] + left_base[1]) / 2.0
+        meeting_z = 0.45
+
+        offset = 0.05
+        wspace_meeting_position = [meeting_x, meeting_y, meeting_z]
+        wspace_right_meeting_position = [meeting_x + offset, meeting_y, meeting_z]
+        wspace_left_meeting_position = [meeting_x - offset, meeting_y, meeting_z]
         roll, pith, yaw = [np.pi, 0, 0]
-        transformation_matrix_base_to_tool = transform_right_arm.get_base_to_tool_transform(position=wspace_meeting_point,rpy=[roll,pith,yaw])
+        transformation_matrix_base_to_tool = transform_right_arm.get_base_to_tool_transform(position=wspace_right_meeting_position,rpy=[roll,pith,yaw])
         right_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)[0]
         roll, pith, yaw = [np.pi/2, 0, 0]
-        transformation_matrix_base_to_tool = transform_left_arm.get_base_to_tool_transform( position=wspace_meeting_point, rpy=[roll, pith, yaw])
+        transformation_matrix_base_to_tool = transform_left_arm.get_base_to_tool_transform( position=wspace_left_meeting_position, rpy=[roll, pith, yaw])
         left_cspace_meeting_point = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,transformation_matrix_base_to_tool)[0]
         self.right_arm_meeting_conf = right_cspace_meeting_point # TODO 1
         self.left_arm_meeting_conf = left_cspace_meeting_point # TODO 1
