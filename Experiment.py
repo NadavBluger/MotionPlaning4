@@ -14,7 +14,7 @@ from visualizer import Visualize_UR
 import inverse_kinematics
 
 from environment import LocationType
-
+MEETING_RETREAT_DIST=-0.3
 
 def log(msg):
     written_log = f"STEP: {msg}"
@@ -183,26 +183,19 @@ class Experiment:
                                                           LocationType.LEFT,
                                                           "movel",
                                                           list(self.right_arm_meeting_conf),
-                                                          [0, -0.3, 0],
+                                                          [0, MEETING_RETREAT_DIST, 0],
                                                           [],
                                                           Gripper.STAY,
                                                           Gripper.STAY)
-        area = env.cube_areas[LocationType.LEFT]
-
-        x1, y1 = area[0]
-        x2, y2 = area[1]
-
-        middleZoneB = [(x1 + x2) / 2, (y1 + y2) / 2, 0.5]
-        middleZoneB_trans = left_arm_transform.get_base_to_tool_transform(position=middleZoneB, rpy=[np.pi, -np.pi/2, np.pi/2])
-        middleZoneB_confs = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,
-                                                                         middleZoneB_trans)
-        valid_middleZoneB_confs =bb_l.validate_IK_solutions(middleZoneB_confs, middleZoneB_trans)
         update_environment(env, LocationType.LEFT, valid_cube_approach[0], cubes)
-        lamc_copty=  self.left_arm_meeting_conf.copy()
-        lamc_copty[1]-=0.3
-        self.plan_single_arm(planner_l, lamc_copty, valid_middleZoneB_confs[-1],
-                             "right_arm static, left_arm to zone B", LocationType.LEFT, "move",
-                             self.right_arm_meeting_conf, cubes, Gripper.STAY, Gripper.STAY)
+        self.push_step_info_into_single_cube_passing_data("Left arm meeting point -> bin",
+                                                          LocationType.LEFT,
+                                                          "move",
+                                                          list(self.right_arm_meeting_conf),
+                                                          self.left_meeting_to_bin_plan.tolist(),
+                                                          [],
+                                                          Gripper.STAY,
+                                                          Gripper.STAY)
         self.push_step_info_into_single_cube_passing_data("dropping cube",
                                                           LocationType.LEFT,
                                                           "movel",
@@ -212,7 +205,7 @@ class Experiment:
                                                           Gripper.STAY,
                                                           Gripper.OPEN)
 
-        return np.array(valid_middleZoneB_confs[0]), np.array(self.right_arm_meeting_conf) #TODO 3: return left and right end position, so it can be the start position for the next interation.
+        return np.array(self.left_meeting_to_bin_plan[-1]), np.array(self.right_arm_meeting_conf) #TODO 3: return left and right end position, so it can be the start position for the next interation.
 
 
     def plan_experiment(self):
@@ -258,6 +251,7 @@ class Experiment:
         meeting_y = (right_base[1] + left_base[1]) / 2.0
         meeting_z = 0.45
 
+
         offset = 0.05
         wspace_meeting_position = [meeting_x, meeting_y, meeting_z]
         wspace_right_meeting_position = [meeting_x + offset, meeting_y, meeting_z]
@@ -272,6 +266,21 @@ class Experiment:
         valid_left_cspace_meeting_point = bb_left.validate_IK_solutions(left_cspace_meeting_points, transformation_matrix_base_to_tool)
         self.right_arm_meeting_conf = valid_right_cspace_meeting_points[0]# TODO 1
         self.left_arm_meeting_conf = valid_left_cspace_meeting_point[0]# TODO 1
+
+        #find position above cube zone
+        #plan left meeting point -> above bin and save for later use
+        area = env.cube_areas[LocationType.LEFT]
+        x1, y1 = area[0]
+        x2, y2 = area[1]
+        middleZoneB = [(x1 + x2) / 2, (y1 + y2) / 2, 0.5]
+        middleZoneB_trans = transform_left_arm.get_base_to_tool_transform(position=middleZoneB,
+                                                                          rpy=[np.pi, -np.pi / 2, np.pi / 2])
+        middleZoneB_confs = inverse_kinematics.inverse_kinematic_solution(inverse_kinematics.DH_matrix_UR5e,
+                                                                          middleZoneB_trans)
+        valid_middleZoneB_confs = bb_left.validate_IK_solutions(middleZoneB_confs, middleZoneB_trans)
+        a_bit_back_from_left_meeting = self.left_arm_meeting_conf.copy()
+        a_bit_back_from_left_meeting[1]+=MEETING_RETREAT_DIST
+        self.left_meeting_to_bin_plan, _ = rrt_star_planner_left.find_path(a_bit_back_from_left_meeting, valid_middleZoneB_confs[0])
 
         log(msg="start planning the experiment.")
         left_arm_start = self.left_arm_home
