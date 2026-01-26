@@ -179,7 +179,7 @@ class Experiment:
         print("Bin")
         #Throw cube in bin
         update_environment(env, LocationType.LEFT, self.right_arm_meeting_conf, cubes)
-        self.push_step_info_into_single_cube_passing_data("Left closes gripper",
+        self.push_step_info_into_single_cube_passing_data("Left Moves back",
                                                           LocationType.LEFT,
                                                           "movel",
                                                           list(self.right_arm_meeting_conf),

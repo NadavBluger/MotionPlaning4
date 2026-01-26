@@ -29,9 +29,7 @@ class RRT_STAR(object):
         costs = []
         cost = math.inf
         start_time = time.time()
-        print(self.bb.config_validity_checker(goal_conf))
         while not self.tree.is_goal_exists(goal_conf):
-            print(len(self.tree.vertices))
             if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path(goal_conf)) < cost:
                 cost = self.compute_cost(self.get_path(goal_conf))
                 costs.append((time.time() - start_time, cost))
@@ -82,8 +80,6 @@ class RRT_STAR(object):
             if self.tree.is_goal_exists(goal_conf) and self.compute_cost(self.get_path(goal_conf)) < cost:
                 cost = self.compute_cost(self.get_path(goal_conf))
                 costs.append((time.time() - start_time, cost))
-        print(len(self.tree.vertices))
-        print("found path mutherfucker")
         return self.get_path(goal_conf), costs
 
     def get_path(self, goal):
